@@ -34,18 +34,20 @@ def clean_up(
 
 """
 Можно ли будет вместо article:str сделать article:[str]?
+Да, в итоге всё равно нужно будет принять в fit_transform [str].
+"""
+
 
 def tf_idf_nitems(
-    article: str, 
+    article: [str],
     n: int
 ):
-    это будет полноценным кодом: 
-    tfidfvectorizer = TfidfVectorizer(analyzer='word')
-    tfidf_wm = tfidfvectorizer.fit_transform(sample)
-    tfidf_tokens = tfidfvectorizer.get_feature_names_out()
-    df_tfidfvect = pd.DataFrame(data = tfidf_wm.toarray(),index = ['Doc1','Doc2'],columns = tfidf_tokens)
-    print(df_tfidfvect)
-    """
+    # get the n most important words in article
+    tfidfvectorizer = TfidfVectorizer(use_idf=True)
+    tfIdf = tfIdfVectorizer.fit_transform(article)
+    df = pd.DataFrame(tfIdf[0].T.todense(), index=tfIdfVectorizer.get_feature_names_out(), columns=["TF-IDF"])
+    df = df.sort_values('TF-IDF', ascending=False)
+    return df.head(n).index.to_list()
 
 
 def compare_series(
