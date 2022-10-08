@@ -5,6 +5,7 @@ import pandas as pd
 
 from analytics_util import lemmatize, form_ngrams, tf_idf_nitems, digest, eval_article
 
+# keywords that form a description of the role's job
 ROLE_KEYWORDS = {
     "Accountant": ["бухгалтер", "закон", "налог", "счет-фактура", "инвойс", "бухгалтерия", "смета"],
     "CEO": ["директор", "закон", "предприниматель", "предпринимательство", "бизнес", "бизнесмен", "дотация", "налог"]

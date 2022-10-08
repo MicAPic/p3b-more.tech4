@@ -26,31 +26,37 @@ NLP = spacy.load("ru_core_news_lg")
 
 
 def lemmatize(
-        text: str
+        article: str
 ) -> List[str]:
     """
-    Remove links, e-mails and lemmatize the article
+    Removes links, e-mails and lemmatize the article. Used in eval_data_4_role()
 
-    :param text: String containing the full article
-    :return: List of lemmas from the given article
+    :param article: String containing the full article
+    :return: List of tokenized articles
     """
     # remove e-mails and url links
-    text = re.sub(r'\S*@\S*\s?', '', text)
-    text = re.sub(r'http\S+', '', text)
-    text = re.sub(r'www.\S+', '', text)
+    article = re.sub(r'\S*@\S*\s?', '', article)
+    article = re.sub(r'http\S+', '', article)
+    article = re.sub(r'www.\S+', '', article)
 
     # remove all non-alphabetic characters
-    text = re.sub("[^а-яА-Я]+", ' ', text)
+    article = re.sub("[^а-яА-Я]+", ' ', article)
 
-    doc = NLP(text)
-    text = [token.lemma_ for token in doc if token.pos_ in POS_TAGS]
+    doc = NLP(article)
+    article = [token.lemma_ for token in doc if token.pos_ in POS_TAGS]
 
-    return text
+    return article
 
 
 def form_ngrams(
         articles: pd.Series
-):
+) -> pd.Series:
+    """
+    Substitutes collocations with respective n-grams where it can be applied. Used in eval_data_4_role()
+
+    :param articles: Series containing the necessary tokenized articles
+    :return: Series with n-grams added
+    """
     bigram = gensim.models.Phrases(articles)
     trigram = gensim.models.Phrases(bigram[articles])
 
@@ -69,6 +75,13 @@ def tf_idf_nitems(
         article: [str],
         n=10
 ) -> List[str]:
+    """
+    Applies TF-IDF to a tokenized article. Used in eval_data_4_role()
+
+    :param article: Tokenized article
+    :param n: No. of articles the function should return
+    :return: List of n most frequent terms
+    """
     # get n most important words in the article
     tf_idf_vectorizer = TfidfVectorizer(use_idf=True)
     tf_idf = tf_idf_vectorizer.fit_transform(article)
@@ -77,16 +90,26 @@ def tf_idf_nitems(
     return results.head(n).index.to_list()
 
 
-# used in the following function
+# used in digest() below
 lex_rank_summarizer = LexRankSummarizer()
 #
 
 
 def digest(
-        text: str
+        article: str,
+        n=3
 ) -> List[str]:
-    my_parser = PlaintextParser.from_string(text, Tokenizer('russian'))  # заменить, если будет время
-    lexrank_summary = lex_rank_summarizer(my_parser.document, sentences_count=3)
+    """
+    Forms a digest based on the article given. Used in eval_data_4_role()
+
+    :param article: String containing the full article
+    :param n: No. of sentences to return
+    :return: List of n sentences that summarize the article
+    """
+    # заменить токенизатором spaCy, если останется время:
+    my_parser = PlaintextParser.from_string(article, Tokenizer('russian'))
+    #
+    lexrank_summary = lex_rank_summarizer(my_parser.document, sentences_count=n)
     digest_sentences = []
     for sentence in lexrank_summary:
         digest_sentences.append(str(sentence))
@@ -98,9 +121,9 @@ def eval_article(
         role_keywords: List[str]
 ) -> float:
     """
-    Evaluate the given article using the similarity with the keywords for a role
+    Evaluate the given article based on the similarity with the keywords for a role. Used in eval_data_4_role()
 
-    :param terms: Most frequent terms of the article for analysis (use TF_IDF)
+    :param terms: Most frequent terms of the article for analysis (use TF-IDF)
     :param role_keywords: List of keywords
     :return: Mean value for the article
     """
@@ -115,15 +138,14 @@ def eval_article(
     return median(results)
 
 
-def find_trends(
+def generate_trend_wordcloud(
         articles: pd.Series,
 ) -> None:
     """
-    Splits the dataframe in half, tries to find trending keywords (should be already processed by clean_up),
+    Splits the dataframe (should be already lemmatized, etc.) in half, tries to find trending keywords,
     generates a WordCloud image at imgs/word_clouds/
 
-    :param articles: Series of articles from a dataframe
-    :return: Dictionary of trending keywords & dictionary of keywords that are fading away
+    :param articles: Series of tokenized articles from a dataframe
     """
 
     # divide Series in two
