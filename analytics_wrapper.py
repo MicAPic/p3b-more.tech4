@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import List
 
-import gensim.downloader
 import pandas as pd
 
 from analytics_util import lemmatize, form_ngrams, tf_idf_nitems, digest, eval_article
@@ -31,19 +30,17 @@ def preprocess_df(
 def eval_data_4_role(
         role: str,
         dataframe: pd.DataFrame,
-        n=3,
-        model=gensim.downloader.load("word2vec-ruscorpora-300")
+        n=3
 ) -> List[List]:
-    assert ROLE_KEYWORDS["role"]
-    dataframe[role] = dataframe["Text"].map(lambda x: eval_article(w2v_model=model, terms=x,
-                                                                   role_keywords=ROLE_KEYWORDS["role"]))
+    assert ROLE_KEYWORDS[role]
+    dataframe[role] = dataframe["Text"].map(lambda x: eval_article(terms=x, role_keywords=ROLE_KEYWORDS["role"]))
     dataframe = dataframe.sort_values(role, axis=1, ascending=False).head(n=n)
 
     return dataframe.drop(["Title", "Text", role], axis=1).values.tolist()
 
 
 if __name__ == "__main__":
-    df = pd.read_csv("dataset.tsv", sep="\t")
-    df = preprocess_df(df)
+    df = pd.read_csv("temp.tsv", sep="\t")
+    # df = preprocess_df(df)
     # eval_data_4_role("CEO", df)
 
