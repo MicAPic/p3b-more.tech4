@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import sys
 import re
+from typing import List
 
 import numpy as np
 import spacy
@@ -18,7 +18,13 @@ NLP = spacy.load("ru_core_news_sm")
 
 def clean_up(
         text: str
-) -> str:
+) -> List[str]:
+    """
+    Remove links, e-mails and lemmatize the article
+
+    :param text: String containing the full article
+    :return: List of lemmas from the given article
+    """
     # remove e-mails and url links
     text = re.sub(r'\S*@\S*\s?', '', text)
     text = re.sub(r'http\S+', '', text)
@@ -33,6 +39,7 @@ def clean_up(
 
 
 """
+<<<<<<< Updated upstream
 Можно ли будет вместо article:str сделать article:[str]?
 Да, в итоге всё равно нужно будет принять в fit_transform [str].
 """
@@ -41,9 +48,9 @@ def clean_up(
 def tf_idf_nitems(
     article: [str],
     n: int
-):
+) -> List[str]:
     # get the n most important words in article
-    tfidfvectorizer = TfidfVectorizer(use_idf=True)
+    tfIdfVectorizer = TfidfVectorizer(use_idf=True)
     tfIdf = tfIdfVectorizer.fit_transform(article)
     df = pd.DataFrame(tfIdf[0].T.todense(), index=tfIdfVectorizer.get_feature_names_out(), columns=["TF-IDF"])
     df = df.sort_values('TF-IDF', ascending=False)
