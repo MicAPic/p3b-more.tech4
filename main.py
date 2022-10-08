@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import json
-import time
 import asyncio
+import aioschedule
 from aiogram import types, executor
-from aiogram.utils.helper import Helper, HelperMode, ListItem
 from aiogram.utils.markdown import text, bold, italic
 from aiogram.types import ParseMode
 
 from config import bot, dp
-from utils import States
+from utils import States, scheduler
 
 
 async def on_shutdown(dp):
@@ -19,6 +18,9 @@ async def on_shutdown(dp):
 
 @dp.message_handler(state=States.PROFILE_STATE)
 async def first_test_state_case_met(message: types.Message):
+    """
+    Records the users's occupation on the data
+    """
     with open('data.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
 
@@ -26,14 +28,24 @@ async def first_test_state_case_met(message: types.Message):
 
     with open('data.json', 'w', encoding='utf-8') as f:
         json.dump(data, f)
+    msg = 'Записано! Для установки времени нажмите команду /timeset.'
+    await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
 
     state = dp.current_state(user=message.from_user.id)
-    await message.answer('Принято!')
     await state.reset_state()
 
 
 @dp.message_handler(state=States.TIMESET_STATE)
 async def first_test_state_case_met(message: types.Message):
+    """
+    
+    """
+    first_time, second_time = message.text.split()
+    asyncio.create_task(scheduler(first_time, second_time))
+
+    msg = 'Принято!'
+    await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
+
     state = dp.current_state(user=message.from_user.id)
     await state.reset_state()
 
@@ -46,7 +58,7 @@ async def process_help_command(message: types.Message):
 
     msg = text(bold('Новостной портал '), '+', bold('3балла'), '!\nПривет! '
                + 'Этот бот подбирает новости, актуальные для Вашей '
-               + 'профессиональной деятельности, дважды в день. Чтобы указать '
+               + 'профессиональной деятельности дважды в день. Чтобы указать '
                + 'свою профессию, нажмите на следующую команду: /profile.',
                sep='')
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
@@ -68,15 +80,38 @@ async def process_help_command(message: types.Message):
 @dp.message_handler(state='*', commands=['timeset'])
 async def process_help_command(message: types.Message):
     """
-    Handles /timeset command. 
+    Handles /timeset command. Set the time of news output.
     """
 
     state = dp.current_state(user=message.from_user.id)
     await state.set_state(States.all()[1])
 
-    msg = text(bold('Укажите часы, в которое Вы хотите получать новости ')
-               + bold('(два числа: утренний и вечерний час):'), sep='')
+    msg = text('Укажите время, в которое Вы хотите получать новости утром и ',
+               'вечером в формате ', bold('часы:минуты часы:минуты'),
+               '.\nНапример, это может выглядеть так: 8:07 17:21.', sep='')
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
+
+
+@dp.message_handler(state='*', commands=['stop'])
+async def process_help_command(message: types.Message):
+    """
+    Handles /stop command. Terminate the digest.
+    """
+
+    state = dp.current_state(user=message.from_user.id)
+    await state.reset_state()
+    aioschedule.clear()
+
+    msg = text('Дайджест остановлен!', sep='')
+    await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
+
+
+@dp.message_handler(commands=['trends'])
+async def process_help_command(message: types.Message):
+    """
+    Handles /trends command. 
+    """
+    pass
 
 
 @dp.message_handler(commands=['help'])
@@ -89,6 +124,8 @@ async def process_help_command(message: types.Message):
                '/profile - указать профессию',
                '/help - увидеть этот список вновь',
                '/timeset - указать время отправки новостей',
+               '/stop - остновить отправку новостей',
+               '/trends - вывод трендов за месяц',
                sep='\n')
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
 
