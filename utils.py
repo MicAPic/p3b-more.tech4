@@ -60,6 +60,16 @@ async def get_data(url_link: str, feed_link: str):
         for element in part_txt:
             txt_arts += element.text
 
+    # Parsing  aif.ru
+    elif (feed_link == 'https://aif.ru/'):
+        HeadArticles = website.find_all('h1')
+        HeadArticles = HeadArticles[0].text
+
+        PartText = website.find_all('p')
+
+        for i in range(0,len(PartText)-15):
+            TextArticles += ' ' + PartText[i].text
+
     return [hd_arts.replace('\n', ''), txt_arts.replace('\n', '')]
 
 
@@ -108,7 +118,6 @@ async def getting_news_to_file(last_time: datetime):
                     # Write it to a file
                     writer.writerow(
                         [element.links[0].href, site_data[0], site_data[1]])
-
 
 
 async def news_update(last_time: str):

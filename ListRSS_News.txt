@@ -1,3 +1,4 @@
+https://aif.ru/rss/money.php
 https://www.consultant.ru/rss/nw.xml
 https://www.consultant.ru/rss/db.xml
 https://www.consultant.ru/rss/fks.xml
