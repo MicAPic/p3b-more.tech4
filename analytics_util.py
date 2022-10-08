@@ -22,7 +22,7 @@ from wordcloud import WordCloud
 from PIL import Image
 
 POS_TAGS = ['NOUN', 'ADJ', 'VERB', 'ADV', 'PROPN']
-NLP = spacy.load("ru_core_news_sm")
+NLP = spacy.load("ru_core_news_lg")
 
 
 def lemmatize(
@@ -94,27 +94,23 @@ def digest(
 
 
 def eval_article(
-        w2v_model,
         terms: List[str],
         role_keywords: List[str]
 ) -> float:
     """
     Evaluate the given article using the similarity with the keywords for a role
 
-    :param w2v_model: Pre-trained W2V model
     :param terms: Most frequent terms of the article for analysis (use TF_IDF)
     :param role_keywords: List of keywords
     :return: Mean value for the article
     """
 
     results = []
+    terms = list(map(NLP, terms))
+    role_keywords = list(map(NLP, role_keywords))
 
     for article_word, keyword in product(terms, role_keywords):
-        try:
-            results.append(w2v_model.similarity(article_word + "_" + NLP(article_word)[0].pos_,
-                                                keyword + "_" + NLP(keyword)[0].pos_))
-        except KeyError:
-            results.append(0.0)
+        results.append(article_word.similarity(keyword))
 
     return median(results)
 
