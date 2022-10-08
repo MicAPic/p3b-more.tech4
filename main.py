@@ -9,7 +9,6 @@ from aiogram.types import ParseMode
 
 from config import bot, dp
 from utils import States, scheduler, trends_update
-from analytics_wrapper import eval_data_4_role, preprocess_df
 
 
 async def on_shutdown(dp):
@@ -29,6 +28,7 @@ async def first_test_state_case_met(message: types.Message):
 
     with open('data.json', 'w', encoding='utf-8') as f:
         json.dump(data, f)
+
     msg = 'Записано! Для установки времени нажмите команду /timeset.'
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
 
@@ -42,7 +42,8 @@ async def first_test_state_case_met(message: types.Message):
     Sets a scheduler with daily notifications at assigned times.
     """
     first_time, second_time = message.text.split()
-    asyncio.create_task(scheduler(first_time, second_time))
+    asyncio.create_task(scheduler(first_time, second_time,
+                                  message.from_user.id))
 
     msg = 'Принято! Ожидайте новости в указанное время.'
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
@@ -118,6 +119,7 @@ async def process_help_command(message: types.Message):
     """
     Handles /trends command. Displays a list of trends over the last month.
     """
+    pass
 
 
 @dp.message_handler(commands=['help'])

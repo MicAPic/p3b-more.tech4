@@ -1,4 +1,6 @@
 import csv
+import json
+import pandas as pd
 import requests
 import feedparser
 from bs4 import BeautifulSoup
@@ -6,7 +8,10 @@ from datetime import datetime, timedelta
 
 import asyncio
 import aioschedule
+from config import bot
 from aiogram.utils.helper import Helper, HelperMode, ListItem
+
+from analytics_wrapper import eval_data_4_role, preprocess_df
 
 
 class States(Helper):
@@ -39,7 +44,7 @@ async def get_data(url_link: str, feed_link: str):
 
         # Making a complete text out of parts
         for element in part_txt:
-            txt_arts += element.text
+            txt_arts += ' ' + element.text
 
     # Parsing  consultant.ru
     elif (feed_link == 'http://www.consultant.ru/' or
@@ -84,7 +89,7 @@ async def get_data(url_link: str, feed_link: str):
     return [hd_arts.replace('\n', ''), txt_arts.replace('\n', '')]
 
 
-async def getting_news_to_file(last_time: datetime):
+async def getting_news_to_file(last_time: datetime, user_id=0):
     """
 
     """
@@ -131,15 +136,24 @@ async def getting_news_to_file(last_time: datetime):
                         [then, element.links[0].href,
                          site_data[0], site_data[1]])
 
+    df = pd.read_csv('temp.tsv', sep='\t')
+    df = preprocess_df(df)
 
-async def news_update(last_time: str):
+    with open('data.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    role = data[str(user_id)]
+    await bot.send_message(user_id, eval_data_4_role(role, df))
+
+
+async def news_update(last_time: str, user_id: int):
     """
     Generates a list of news from the last_time using getting_news_to_file
     """
     now = datetime.now() - timedelta(days=1)
     last_time = now.strftime('%d/%m/%Y') + ' ' + last_time + ':00'
     last_time = datetime.strptime(last_time, '%d/%m/%Y %H:%M:%S')
-    await getting_news_to_file(last_time)
+    await getting_news_to_file(last_time, user_id)
 
 
 async def trends_update():
@@ -150,15 +164,14 @@ async def trends_update():
     await getting_news_to_file(last_time)
 
 
-async def scheduler(first_time: str, second_time: str):
+async def scheduler(first_time: str, second_time: str, user_id: int):
     """
 
     """
-    await news_update(first_time)
-    # aioschedule.every().day.at(first_time).do(news_update,
-    #                                           last_time=second_time)
-    # aioschedule.every().day.at(second_time).do(news_update,
-    #                                            last_time=first_time)
+    aioschedule.every().day.at(first_time).do(news_update, user_id=user_id,
+                                              last_time=second_time)
+    aioschedule.every().day.at(second_time).do(news_update, user_id=user_id,
+                                               last_time=first_time)
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(60)

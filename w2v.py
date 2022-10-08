@@ -7,29 +7,26 @@ import pandas as pd
 from gensim.models import Word2Vec
 
 
-def train_model(
-        articles: pd.Series
-):
+def train_model(articles: pd.Series):
     """
-    Train a Word2Vec model based on a dataframe of articles (should be already lemmatized).
+    Train a Word2Vec model based on a dataframe of articles
+    (should be already lemmatized).
 
     The model is saved at /models/
 
     :param articles: Path to the file
     """
-    new_model = Word2Vec(sentences=articles, vector_size=300, min_count=1, workers=4, sg=1)
-    if not os.path.exists("models"):
-        os.makedirs("models")
-    new_model.save(f"models/w2v_{datetime.now():%Y-%m-%d-%H%M%S}.model")
-#
-#
-# def find_most_similar(
-#         w2v_model,
-#         target_word: str,
-#         n=7
-# ) -> List[str]:
+    new_model = Word2Vec(sentences=articles, vector_size=300,
+                         min_count=1, workers=4, sg=1)
+    if not os.path.exists('models'):
+        os.makedirs('models')
+    new_model.save(f'models/w2v_{datetime.now():%Y-%m-%d-%H%M%S}.model')
+
+
+# def find_most_similar(w2v_model, target_word: str, n=7) -> List[str]:
 #     """
-#     Search for matches that are similar in meaning to the given target_word among the keywords of a pre-trained
+#     Search for matches that are similar in meaning to the given target_word
+#     among the keywords of a pre-trained
 #     W2V model (see https://en.wikipedia.org/wiki/Word2vec)
 #
 #     :param w2v_model: Pre-trained W2V model
