@@ -7,8 +7,9 @@ import gensim.downloader
 from analytics_util import lemmatize, form_ngrams, tf_idf_nitems, digest, eval_article
 
 ROLE_KEYWORDS = {
-    "Accountant": ["бухгалтер", "закон"],
-    "CEO": ["директор", "закон"]
+    "Accountant": ["бухгалтер", "закон", "налог", "счет-фактура", "инвойс", "бухгалтерия", "смета"],
+    "CEO": ["директор", "закон", "директор", "предприниматель",
+            "предпринимательство", "бизнес", "бизнесмен", "дотация", "налог"]
 }
 
 
