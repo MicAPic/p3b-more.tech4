@@ -119,16 +119,21 @@ def eval_article(
 
 
 def compare_series(
-        old_articles: pd.Series,
-        new_articles: pd.Series
+        articles: pd.Series,
+        period1: List[str],
+        period2: List[str]
 ) -> (dict, dict):
     """
     Compare two Series of articles (should be already processed by clean_up)
 
-    :param old_articles: 1st series of older data
-    :param new_articles: 2nd series of newer data
+    :param articles: Series of articles from a dataframe
+    :param period1: Time period of the first slice of the in the format of YYYY-MM-DD HH:MM:SS (time is optional)
+    :param period2: Time period of the first slice of the in the format of YYYY-MM-DD HH:MM:SS (time is optional)
     :return: Dictionary of trending keywords & dictionary of keywords that are fading away
     """
+
+    old_articles = articles[period1[0]:period1[1]]
+    new_articles = articles[period2[0]:period2[1]]
 
     old_articles_counted = Counter(list(chain.from_iterable(old_articles)))
     new_articles_counted = Counter(list(chain.from_iterable(new_articles)))
@@ -157,15 +162,8 @@ def compare_series(
     return trending_keywords, fading_away_keywords
 
 
-if __name__ == "__main__":
-    df = pd.read_csv("temp.tsv", sep="\t")
-
-    # df = df['2022-09-10 00:00:00':"2022-10-10 00:00:00"]
-    # sep = df['2022-08-22 00:32:30':"2022-9-9 23:59:59"]
-
-    # sep["Digest"] = sep["Text"].apply(digest)
-    # sep["Text"] = sep["Text"].apply(clean_up)
-    # sep["Text"] = form_ngrams(sep["Text"])
-    # sep["Text"] = sep["Text"].apply(tf_idf_nitems)
-
-    # t, fd = compare_series(sep["Text"], df["Text"])
+# if __name__ == "__main__":
+#     t, fd = compare_series(df["Text"],
+#                            ["2022-09-10 00:00:00", "2022-10-10 00:00:00"],
+#                            ["2022-08-22 00:32:30", "2022-9-9 23:59:59"]
+#                            )

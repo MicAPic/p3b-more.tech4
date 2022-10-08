@@ -12,7 +12,7 @@ ROLE_KEYWORDS = {
 }
 
 
-def process_data(
+def preprocess_df(
         dataframe: pd.DataFrame
 ) -> pd.DataFrame:
     dataframe.dropna(inplace=True)
@@ -40,3 +40,10 @@ def eval_data_4_role(
     dataframe = dataframe.sort_values(role, axis=1, ascending=False).head(n=n)
 
     return dataframe.drop(["Title", "Text", role], axis=1).values.tolist()
+
+
+if __name__ == "__main__":
+    df = pd.read_csv("temp.tsv", sep="\t")
+    df = preprocess_df(df)
+    eval_data_4_role("CEO", df)
+
