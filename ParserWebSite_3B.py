@@ -21,9 +21,9 @@ def GettingDataArticlesFromWeb(URLLink, LinkForFeed):
             'h1', class_='article-headline__title')[0].text.split('\n')
         HeadArticles = HeadArticles[1].strip(' ')
 
-        # Составляем из частей полноценный текст
+        # Making a complete text out of parts
         for element in PartText:
-            TextArticles += element.text
+            TextArticles += ' ' + element.text
 
     # Parsing  consultant.ru
     if (LinkForFeed == 'http://www.consultant.ru/' or

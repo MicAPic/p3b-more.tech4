@@ -21,7 +21,7 @@ class States(Helper):
 
 async def get_data(url_link: str, feed_link: str):
     """
-    TODO
+    Retrives data from sites 
     """
     txt_arts = ''  # article text
     hd_arts = ''  # article name
@@ -49,7 +49,7 @@ async def get_data(url_link: str, feed_link: str):
 
         part_txt = website.find_all('p', class_='')
         for i in range(2, len(part_txt)):
-            txt_arts += part_txt[i].text
+            txt_arts += ' ' + part_txt[i].text
 
     # Parsing  lenta.ru
     elif (feed_link == 'https://lenta.ru'):
@@ -58,30 +58,41 @@ async def get_data(url_link: str, feed_link: str):
 
         part_txt = website.find_all('div', class_='topic-body__content')
         for element in part_txt:
-            txt_arts += element.text
+            txt_arts += ' ' + element.text
+
+    # Parsing  rbc.ru
+    elif (feed_link == 'http://www.rbc.ru/'):
+        hd_arts = website.find_all(
+            'h1', class_='article__header__title-in js-slide-title')
+        hd_arts = hd_arts[0].text
+
+        PartText = website.find_all('p')
+        for i in range(0, len(PartText)):
+            if i != len(PartText)-2:
+                txt_arts += ' ' + PartText[i].text
 
     # Parsing  aif.ru
     elif (feed_link == 'https://aif.ru/'):
-        HeadArticles = website.find_all('h1')
-        HeadArticles = HeadArticles[0].text
+        hd_arts = website.find_all('h1')
+        hd_arts = hd_arts[0].text
 
-        PartText = website.find_all('p')
+        part_txt = website.find_all('p')
 
-        for i in range(0,len(PartText)-15):
-            TextArticles += ' ' + PartText[i].text
+        for i in range(0, len(part_txt)-15):
+            txt_arts += ' ' + part_txt[i].text
 
     return [hd_arts.replace('\n', ''), txt_arts.replace('\n', '')]
 
 
 async def getting_news_to_file(last_time: datetime):
     """
-    TODO
+
     """
     # Initialization of the start string in tsv file
     with open('temp.tsv', 'w', newline='', encoding='utf8') as f:
         writer = csv.writer(f, delimiter='\t')
         writer.writerow(
-            ['Ссылка статьи', 'Название статьи', 'Содержание статьи'])
+            ['Date', 'Link', 'Title', 'Text'])
 
     # Opening .txt which contains RSS site resources
     with open('ListRSS_News.txt') as f:
@@ -102,7 +113,6 @@ async def getting_news_to_file(last_time: datetime):
 
             # Running through each RSS article
             for element in feed.entries:
-                # Do a time check if it is necessary
                 now = datetime.now()
                 then = datetime(element.published_parsed.tm_year,
                                 element.published_parsed.tm_mon,
@@ -110,19 +120,21 @@ async def getting_news_to_file(last_time: datetime):
                                 element.published_parsed.tm_hour,
                                 element.published_parsed.tm_min)
 
-                if (now - then).total_seconds() < (now - last_time).total_seconds():
+                if (now - then).total_seconds() \
+                        < (now - last_time).total_seconds():
                     # Getting data from the site
                     site_data = await get_data(
                         element.links[0].href, feed.feed.link)
 
                     # Write it to a file
                     writer.writerow(
-                        [element.links[0].href, site_data[0], site_data[1]])
+                        [then, element.links[0].href,
+                         site_data[0], site_data[1]])
 
 
 async def news_update(last_time: str):
     """
-    TODO
+    Generates a list of news from the last_time using getting_news_to_file
     """
     now = datetime.now() - timedelta(days=1)
     last_time = now.strftime('%d/%m/%Y') + ' ' + last_time + ':00'
@@ -130,14 +142,23 @@ async def news_update(last_time: str):
     await getting_news_to_file(last_time)
 
 
+async def trends_update():
+    """
+    Generates a list of news for the last month using getting_news_to_file
+    """
+    last_time = datetime.now() - timedelta(days=30)
+    await getting_news_to_file(last_time)
+
+
 async def scheduler(first_time: str, second_time: str):
     """
-    TODO
+
     """
-    aioschedule.every().day.at(first_time).do(news_update,
-                                              last_time=second_time)
-    aioschedule.every().day.at(second_time).do(news_update,
-                                               last_time=first_time)
+    await news_update(first_time)
+    # aioschedule.every().day.at(first_time).do(news_update,
+    #                                           last_time=second_time)
+    # aioschedule.every().day.at(second_time).do(news_update,
+    #                                            last_time=first_time)
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(60)

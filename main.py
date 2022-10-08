@@ -8,7 +8,8 @@ from aiogram.utils.markdown import text, bold, italic
 from aiogram.types import ParseMode
 
 from config import bot, dp
-from utils import States, scheduler
+from utils import States, scheduler, trends_update
+from analytics_wrapper import eval_data_4_role, preprocess_df
 
 
 async def on_shutdown(dp):
@@ -19,7 +20,7 @@ async def on_shutdown(dp):
 @dp.message_handler(state=States.PROFILE_STATE)
 async def first_test_state_case_met(message: types.Message):
     """
-    Records the users's occupation on the data
+    Records the users's occupation on the data.
     """
     with open('data.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -38,12 +39,12 @@ async def first_test_state_case_met(message: types.Message):
 @dp.message_handler(state=States.TIMESET_STATE)
 async def first_test_state_case_met(message: types.Message):
     """
-    
+    Sets a scheduler with daily notifications at assigned times.
     """
     first_time, second_time = message.text.split()
     asyncio.create_task(scheduler(first_time, second_time))
 
-    msg = 'Принято!'
+    msg = 'Принято! Ожидайте новости в указанное время.'
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
 
     state = dp.current_state(user=message.from_user.id)
@@ -73,8 +74,14 @@ async def process_help_command(message: types.Message):
     state = dp.current_state(user=message.from_user.id)
     await state.set_state(States.all()[0])
 
-    msg = text(bold('Напишите Вашу профессию:'), sep='')
-    await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
+    kb = [[types.KeyboardButton(text='Accountant'),
+           types.KeyboardButton(text='CEO')]]
+    keyboard = types.ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True,
+        input_field_placeholder='Используйте кнопки ниже.'
+    )
+    await message.answer('Укажите Вашу профессию:', reply_markup=keyboard)
 
 
 @dp.message_handler(state='*', commands=['timeset'])
@@ -109,9 +116,8 @@ async def process_help_command(message: types.Message):
 @dp.message_handler(commands=['trends'])
 async def process_help_command(message: types.Message):
     """
-    Handles /trends command. 
+    Handles /trends command. Displays a list of trends over the last month.
     """
-    pass
 
 
 @dp.message_handler(commands=['help'])
@@ -122,10 +128,10 @@ async def process_help_command(message: types.Message):
 
     msg = text(bold('Готов ответить на эти команды:'),
                '/profile - указать профессию',
-               '/help - увидеть этот список вновь',
                '/timeset - указать время отправки новостей',
                '/stop - остновить отправку новостей',
                '/trends - вывод трендов за месяц',
+               '/help - увидеть этот список вновь',
                sep='\n')
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
 
