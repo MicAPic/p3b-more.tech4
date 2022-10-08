@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-from typing import List, Tuple
+from typing import List
 
-import pandas as pd
 import gensim.downloader
+import pandas as pd
 
 from analytics_util import lemmatize, form_ngrams, tf_idf_nitems, digest, eval_article
 
 ROLE_KEYWORDS = {
     "Accountant": ["бухгалтер", "закон", "налог", "счет-фактура", "инвойс", "бухгалтерия", "смета"],
-    "CEO": ["директор", "закон", "директор", "предприниматель",
-            "предпринимательство", "бизнес", "бизнесмен", "дотация", "налог"]
+    "CEO": ["директор", "закон", "предприниматель", "предпринимательство", "бизнес", "бизнесмен", "дотация", "налог"]
 }
 
 
@@ -44,7 +43,7 @@ def eval_data_4_role(
 
 
 if __name__ == "__main__":
-    df = pd.read_csv("temp.tsv", sep="\t")
+    df = pd.read_csv("dataset.tsv", sep="\t")
     df = preprocess_df(df)
-    eval_data_4_role("CEO", df)
+    # eval_data_4_role("CEO", df)
 

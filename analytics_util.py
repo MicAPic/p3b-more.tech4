@@ -1,24 +1,25 @@
 # -*- coding: utf-8 -*-
+import os
 import re
 from collections import Counter
-from itertools import chain
-from typing import List
+from datetime import datetime
+from itertools import chain, product
 from statistics import median
-from itertools import product
+from typing import List
 
-import gensim.models
 import gensim.downloader
+import gensim.models
 import numpy as np
 import pandas as pd
 import spacy
-# import nltk
-# import sumy
 from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
+from sumy.parsers.plaintext import PlaintextParser
 from sumy.summarizers.lex_rank import LexRankSummarizer
+from wordcloud import WordCloud
+from PIL import Image
 
 POS_TAGS = ['NOUN', 'ADJ', 'VERB', 'ADV', 'PROPN']
 NLP = spacy.load("ru_core_news_sm")
@@ -118,22 +119,21 @@ def eval_article(
     return median(results)
 
 
-def compare_series(
+def find_trends(
         articles: pd.Series,
-        period1: List[str],
-        period2: List[str]
-) -> (dict, dict):
+) -> None:
     """
-    Compare two Series of articles (should be already processed by clean_up)
+    Splits the dataframe in half, tries to find trending keywords (should be already processed by clean_up),
+    generates a WordCloud image at imgs/word_clouds/
 
     :param articles: Series of articles from a dataframe
-    :param period1: Time period of the first slice of the in the format of YYYY-MM-DD HH:MM:SS (time is optional)
-    :param period2: Time period of the first slice of the in the format of YYYY-MM-DD HH:MM:SS (time is optional)
     :return: Dictionary of trending keywords & dictionary of keywords that are fading away
     """
 
-    old_articles = articles[period1[0]:period1[1]]
-    new_articles = articles[period2[0]:period2[1]]
+    # divide Series in two
+    half_point = int(len(articles / 2))
+    old_articles = articles.head(half_point)
+    new_articles = articles.tail(half_point - half_point % 2)
 
     old_articles_counted = Counter(list(chain.from_iterable(old_articles)))
     new_articles_counted = Counter(list(chain.from_iterable(new_articles)))
@@ -148,22 +148,22 @@ def compare_series(
     plt.xticks([])
     plt.show()
 
-    # map the two variables to corresponding clusters
-    trending_keywords, fading_away_keywords = dict(), dict()
+    # map the variable to corresponding cluster
+    trending_keywords = dict()
     for i in range(1, len(y_pred)):
         if y_pred[i] != y_pred[i - 1]:
             trending_keywords = dict(list(difference.items())[0:i])
             break
-    for i in range(len(y_pred) - 2, -1, -1):
-        if y_pred[i] != y_pred[i + 1]:
-            fading_away_keywords = dict(list(difference.items())[-1:i:-1])
-            break
 
-    return trending_keywords, fading_away_keywords
+    vtb_mask = np.array(Image.open("imgs/vtb_logo.png"))
+
+    wordcloud = WordCloud(background_color="white",
+                          mask=vtb_mask).generate_from_frequencies(frequencies=trending_keywords)
+    if not os.path.exists("imgs/word_clouds"):
+        os.makedirs("imgs/word_clouds")
+
+    wordcloud.to_file(f"imgs/word_clouds/{datetime.now():%Y-%m-%d-%H%M%S}.jpg")
 
 
 # if __name__ == "__main__":
-#     t, fd = compare_series(df["Text"],
-#                            ["2022-09-10 00:00:00", "2022-10-10 00:00:00"],
-#                            ["2022-08-22 00:32:30", "2022-9-9 23:59:59"]
-#                            )
+#     find_trends(df["Text"])
