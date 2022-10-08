@@ -24,7 +24,7 @@ POS_TAGS = ['NOUN', 'ADJ', 'VERB', 'ADV', 'PROPN']
 NLP = spacy.load("ru_core_news_sm")
 
 
-def clean_up(
+def lemmatize(
         text: str
 ) -> List[str]:
     """
@@ -56,7 +56,7 @@ def form_ngrams(
     bigram_mod = gensim.models.phrases.Phraser(bigram)
     trigram_mod = gensim.models.phrases.Phraser(trigram)
 
-    temp = pd.Series()
+    temp = pd.Series(0, index=np.arange(len(articles)))
     for i, entry in articles.items():
         temp[i] = bigram_mod[entry]
         temp[i] = trigram_mod[bigram_mod[entry]]
@@ -71,9 +71,9 @@ def tf_idf_nitems(
     # get n most important words in the article
     tf_idf_vectorizer = TfidfVectorizer(use_idf=True)
     tf_idf = tf_idf_vectorizer.fit_transform(article)
-    df = pd.DataFrame(tf_idf[0].T.todense(), index=tf_idf_vectorizer.get_feature_names_out(), columns=["TF-IDF"])
-    df = df.sort_values('TF-IDF', ascending=False)
-    return df.head(n).index.to_list()
+    results = pd.DataFrame(tf_idf[0].T.todense(), index=tf_idf_vectorizer.get_feature_names_out(), columns=["TF-IDF"])
+    results = results.sort_values('TF-IDF', ascending=False)
+    return results.head(n).index.to_list()
 
 
 # used in the following function
@@ -158,14 +158,9 @@ def compare_series(
 
 
 if __name__ == "__main__":
-    # gensim.downloader.load("word2vec-ruscorpora-300")
+    df = pd.read_csv("temp.tsv", sep="\t")
 
-    df = pd.read_csv("dataset.tsv", sep="\t")
-    df.dropna(inplace=True)
-    df.set_index("Date", inplace=True)
-    df.sort_index(inplace=True)
-
-    oct = df['2022-09-10 00:00:00':"2022-10-10 00:00:00"]
+    # df = df['2022-09-10 00:00:00':"2022-10-10 00:00:00"]
     # sep = df['2022-08-22 00:32:30':"2022-9-9 23:59:59"]
 
     # sep["Digest"] = sep["Text"].apply(digest)
@@ -173,15 +168,4 @@ if __name__ == "__main__":
     # sep["Text"] = form_ngrams(sep["Text"])
     # sep["Text"] = sep["Text"].apply(tf_idf_nitems)
 
-    oct["Digest"] = oct["Text"].apply(digest)
-    oct["Text"] = oct["Text"].apply(clean_up)
-    oct["Text"] = form_ngrams(oct["Text"])
-    oct["Text"] = oct["Text"].apply(tf_idf_nitems)
-
-    # t, fd = compare_series(sep["Text"], oct["Text"])
-
-    model = gensim.downloader.load("word2vec-ruscorpora-300")
-    oct["Accountant"] = oct["Text"].apply(lambda x: eval_article(w2v_model=model, terms=x,
-                                                                 role_keywords=["бухгалтер", "закон"]))
-    oct["CEO"] = oct["Text"].apply(lambda x: eval_article(w2v_model=model, terms=x,
-                                                                 role_keywords=["директор", "закон"]))
+    # t, fd = compare_series(sep["Text"], df["Text"])
