@@ -1,18 +1,24 @@
 # -*- coding: utf-8 -*-
-import copy
 import re
+from collections import Counter
+from itertools import chain
 from typing import List
+from statistics import median
+from itertools import product
 
 import gensim.models
+import gensim.downloader
 import numpy as np
-import spacy
 import pandas as pd
-from itertools import chain
-from collections import Counter
-
+import spacy
+# import nltk
+# import sumy
 from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sumy.parsers.plaintext import PlaintextParser
+from sumy.nlp.tokenizers import Tokenizer
+from sumy.summarizers.lex_rank import LexRankSummarizer
 
 POS_TAGS = ['NOUN', 'ADJ', 'VERB', 'ADV', 'PROPN']
 NLP = spacy.load("ru_core_news_sm")
@@ -45,28 +51,71 @@ def form_ngrams(
         articles: pd.Series
 ):
     bigram = gensim.models.Phrases(articles)
-    trigram = gensim.models.Phrases(bigram[articles], connector_words=gensim.models.phrases.ENGLISH_CONNECTOR_WORDS)
+    trigram = gensim.models.Phrases(bigram[articles])
 
     bigram_mod = gensim.models.phrases.Phraser(bigram)
     trigram_mod = gensim.models.phrases.Phraser(trigram)
 
-    for i, entry in articles.copy().items():
-        articles[i] = bigram_mod[entry]
-        articles[i] = trigram_mod[bigram_mod[entry]]
+    temp = pd.Series()
+    for i, entry in articles.items():
+        temp[i] = bigram_mod[entry]
+        temp[i] = trigram_mod[bigram_mod[entry]]
 
-    return articles
+    return temp
 
 
 def tf_idf_nitems(
-    article: [str],
-    n: int
+        article: [str],
+        n=10
 ) -> List[str]:
-    # get the n most important words in article
-    tfIdfVectorizer = TfidfVectorizer(use_idf=True)
-    tfIdf = tfIdfVectorizer.fit_transform(article)
-    df = pd.DataFrame(tfIdf[0].T.todense(), index=tfIdfVectorizer.get_feature_names_out(), columns=["TF-IDF"])
+    # get n most important words in the article
+    tf_idf_vectorizer = TfidfVectorizer(use_idf=True)
+    tf_idf = tf_idf_vectorizer.fit_transform(article)
+    df = pd.DataFrame(tf_idf[0].T.todense(), index=tf_idf_vectorizer.get_feature_names_out(), columns=["TF-IDF"])
     df = df.sort_values('TF-IDF', ascending=False)
     return df.head(n).index.to_list()
+
+
+# used in the following function
+lex_rank_summarizer = LexRankSummarizer()
+#
+
+
+def digest(
+        text: str
+) -> List[str]:
+    my_parser = PlaintextParser.from_string(text, Tokenizer('russian'))  # заменить, если будет время
+    lexrank_summary = lex_rank_summarizer(my_parser.document, sentences_count=3)
+    digest_sentences = []
+    for sentence in lexrank_summary:
+        digest_sentences.append(str(sentence))
+    return digest_sentences
+
+
+def eval_article(
+        w2v_model,
+        terms: List[str],
+        role_keywords: List[str]
+) -> float:
+    """
+    Evaluate the given article using the similarity with the keywords for a role
+
+    :param w2v_model: Pre-trained W2V model
+    :param terms: Most frequent terms of the article for analysis (use TF_IDF)
+    :param role_keywords: List of keywords
+    :return: Mean value for the article
+    """
+
+    results = []
+
+    for article_word, keyword in product(terms, role_keywords):
+        try:
+            results.append(w2v_model.similarity(article_word + "_" + NLP(article_word)[0].pos_,
+                                                keyword + "_" + NLP(keyword)[0].pos_))
+        except KeyError:
+            results.append(0.0)
+
+    return median(results)
 
 
 def compare_series(
@@ -109,49 +158,30 @@ def compare_series(
 
 
 if __name__ == "__main__":
-    # first sample df
-    sample1 = pd.DataFrame({
-        "Title": [
-            "Глава Минфина Турции сообщил о поиске альтернативы системе «Мир»",
-            "Турция предложила туристам замену картам «Мир»."
-        ],
+    # gensim.downloader.load("word2vec-ruscorpora-300")
 
-        "Text": [
-            "Турция ищет альтернативу российской платежной системе «Мир», сообщил министр казначейства и финансов Нуреддин Небати, передает издание Finans Gündem. «Ведется работа по поиску альтернативы системе «Мир», мы объявим, когда она будет завершена», — сказал Небати. 23 сентября президент Турции Реджеп Тайип Эрдоган говорил, что проведет совещание и обсудит с министрами эту тему. Как рассказывал позже «Известиям» директор Российско-турецкого делового совета (РТДС) Алексей Егармин, Анкара в качестве альтернативы работе с картами «Мир» предложила России создание отдельного банка. Также Турция предлагала использовать вместо карт «Мир» свою национальную платежную систему Troy, писала газета Aydinlik. Поиск альтернатив российским картам «Мир» начался после того, как турецкие банки стали отказываться от обслуживания карт из-за предупреждения США. В середине сентября Минфин США пригрозил ввести вторичные санкции против иностранных банков, которые продолжают сотрудничать с российской платежной системой вопреки санкциям Вашингтона. О сложностях с обслуживанием карт «Мир» в Турции оператор платежной системы начал сообщать еще в июне. Позже несколько крупных банков страны объявили, что не будут принимать карты «Мир», опасаясь вторичных санкций США.",
-            "Турция предложила россиянам использовать вместо карт «Мир» свою национальную платежную систему Troy. Об этом пишет издание Aydinlik со ссылкой на собственные источники, утверждающие, что центральные банки двух стран проводят плановые переговоры. Troy работает в Турции с 2016 года и была запущена для увеличения объемов безналичных расчетов в стране. По данным издания, в марте 2022 года в обращении было более 12 млн пластиковых карт Troy. Глава турецкого Центробанка Шахап Кавчиоглу заявил, что торговлю между странами надо вести в национальных валютах, и «проявил волю в этом направлении», утверждает Aydinlik. «Если российские банки, находящиеся вне санкций США, принимают турецкую платежную систему Troy или открывают счет в турецких банках, работающих в России, и получают карту, интегрированную с Troy, то российские туристы смогут совершать покупки по этим картам в нашей стране», — пишет издание и добавляет, что, поскольку национальную платежную систему и транзакции контролирует Турция, «США нелегко будет найти повод для вмешательства». В конце сентября газета Sabah написала, что турбизнес обдумывает вариант продажи вместе с турами «билетных» карт на замену «Миру». Такой картой россияне могли бы расплачиваться в ресторанах, магазинах и местах развлечений, а туроператор будет переводить потраченные отдыхающими деньги стороне, оказавшей услуги. Глава российско-турецкого делового совета (РТДС) Алексей Егармин заявлял, что Анкара изучает вариант создания отдельного банка или системы на основе расчетов в блокчейне для работы с картами «Мир», которым не будут угрожать санкции. "
-        ],
+    df = pd.read_csv("dataset.tsv", sep="\t")
+    df.dropna(inplace=True)
+    df.set_index("Date", inplace=True)
+    df.sort_index(inplace=True)
 
-        "Link": [
-            "https://www.rbc.ru/rbcfreenews/633d744e9a79470d8f112780",
-            "https://www.rbc.ru/life/news/633d16449a7947e8e46f6da7"
-        ],
-    })
-    sample1.set_index("Link")
+    oct = df['2022-09-10 00:00:00':"2022-10-10 00:00:00"]
+    # sep = df['2022-08-22 00:32:30':"2022-9-9 23:59:59"]
 
-    # first sample df
-    sample2 = pd.DataFrame({
-        "Title": [
-            "Годовая инфляция в Турции достигла максимума за 24 года",
-            "Цены в России выросли впервые за четыре месяца"
-        ],
+    # sep["Digest"] = sep["Text"].apply(digest)
+    # sep["Text"] = sep["Text"].apply(clean_up)
+    # sep["Text"] = form_ngrams(sep["Text"])
+    # sep["Text"] = sep["Text"].apply(tf_idf_nitems)
 
-        "Text": [
-            """Годовая инфляция в Турции достигла нового 24-летнего максимума в сентябре и составила 83,45%. Об этом свидетельствуют опубликованные в понедельник официальные турецкие данные, сообщает "Европейская правда" со ссылкой на агентство АР. Турецкий статистический институт сообщил, что потребительские цены выросли на 3,08% по сравнению с предыдущим месяцем. Эксперты говорят, что инфляция намного выше официальной статистики, а независимая группа исследования инфляции в понедельник оценила годовой уровень на уровне 186,27%. В прошлом месяце центральный банк Турции провел очередное снижение процентной ставки, снизив базовую ставку до 12%, несмотря на рост цен, падение лиры и несбалансированный текущий счет.  Лира потеряла более 50% своей стоимости по отношению к доллару США с тех пор, как в прошлом году центральный банк начал снижать ставки. Вторжение России в Украину и падение курса лиры усилили инфляцию. Экономисты говорят, что рост инфляции в Турции подпитывается неортодоксальным убеждением президента Реджепа Тайипа Эрдогана в том, что высокая стоимость заимствований ведет к росту цен, что противоречит экономической теории. По данным статистического института, наиболее резкий рост годовых цен был в транспортном секторе - 117,66%, за ним следуют цены на продукты питания и безалкогольные напитки - 93%. В июле годовая инфляция в Турции выросла почти до 80%, больше всего подорожали продукты питания, жилье и энергоносители.  В сентябре в Турции выросли цены на газ и электроэнергию для промышленности, сферы услуг и домохозяйств. """,
-            "В сентябре 2022 года потребительские цены в России символически выросли — на 0,05% — после трех месяцев дефляции, сообщил Росстат. К росту перешла стоимость продуктов питания (без овощей и фруктов) и непродовольственных товаров. Росстат впервые после весны зафиксировал в России инфляцию в месячном выражении. В сентябре 2022 года потребительские цены выросли на 0,05% по сравнению с августом. Все лето наблюдалась дефляция: цены снижались на 0,4–0,5% в месяц. Снижение цен в течение трех месяцев подряд было зафиксировано всего второй раз в российской истории (первый раз — в 2011 году). Нынешний дефляционный период стал компенсаторной реакцией на мартовский скачок цен на фоне резкого обесценения рубля, которое быстро сменилось его сильным укреплением. В недельном выражении цены в стране повышаются две недели подряд, в том числе с 27 сентября по 3 октября инфляция составила 0,07%. В годовом выражении цены оказались на 13,7% выше, чем в сентябре прошлого года (в августе 2022 года к августу 2021-го было 14,3%). По данным Росстата, в сентябре к предыдущему месяцу подорожали продукты питания (без овощей и фруктов) — на 0,03%, а также непродовольственные товары (на 0,15%) и услуги (на 0,51%). В августе все эти категории дешевели по сравнению с июлем. Базовая инфляция (с исключением «краткосрочных неравномерных изменений цен» — на плодоовощную продукцию, ряд алкогольных напитков, топлива и регулируемых тарифов) за сентябрь оценена Росстатом в 0,3% (в августе было нулевое изменение). Овощи и фрукты в сентябре продолжили дешеветь: средняя стоимость лука снизилась на 27,5% к августу, моркови — на 18%, картофеля — на 15,4%, винограда — на 14,6%, капусты — на 11,9% и т.д. Однако огурцы (занимают более весомую позицию в потребительской корзине, чем другие овощи, — 0,56%) подорожали на 31,6%, апельсины — на 6,5%, бананы — на 5,4%. Средняя цена килограмма огурцов в России в августе составляла около 67 руб., то есть в сентябре их цена могла подскочить до 85–87 руб. (столько же они стоили в первой половине лета), следует из данных Росстата. Среди непродовольственных товаров заметно выросли цены на газовое моторное топливо (плюс 4,3% к августу; в предыдущем месяце было плюс 1,2%), ноутбуки, моноблоки, мониторы для настольного компьютера, электропылесосы, холодильники подорожали более чем на 1,1%. Среди услуг зарубежного туризма более всего увеличились цены на поездки на отдых в ОАЭ и Египет — на 26,5 и 25,1% соответственно, отдельные страны Юго-Восточной и Южной Азии — на 17,7 и 12,5%. В то же время снизились цены на поездки на отдых в Турцию — на 8% и страны Закавказья — на 5,6%, сообщает Росстат. Аналитики ждут, что темпы инфляции будут ускоряться к концу года. Минэкономразвития прогнозирует, что инфляция в декабре 2022 года к декабрю прошлого года составит 12,4%. Вклад частичной мобилизации, объявленной 21 сентября, может быть дезинфляционным, поскольку это решение может сократить потребительский спрос. Так, экономисты «Ренессанс Капитала» писали в конце сентября, что начало частичной мобилизации окажет сдерживающее влияние на потребительский спрос при усилении сберегательного поведения."
-        ],
+    oct["Digest"] = oct["Text"].apply(digest)
+    oct["Text"] = oct["Text"].apply(clean_up)
+    oct["Text"] = form_ngrams(oct["Text"])
+    oct["Text"] = oct["Text"].apply(tf_idf_nitems)
 
-        "Link": [
-            "https://www.eurointegration.com.ua/rus/news/2022/10/3/7147952/",
-            "https://www.rbc.ru/economics/07/10/2022/63402b699a794759aa271b77"
-        ],
-    })
-    sample2.set_index("Link")
+    # t, fd = compare_series(sep["Text"], oct["Text"])
 
-    sample1["Text"] = sample1["Text"].apply(clean_up)
-    sample1["Text"] = form_ngrams(sample1["Text"])
-    # sample1["Text"] = sample["Text"].apply(tf_idf_nitems)
-
-    # sample2["Text"] = sample2["Text"].apply(clean_up)
-    # sample2["Text"] = sample2["Text"].apply(tf_idf_nitems)
-
-    # t, fd = compare_series(sample1["Text"], sample2["Text"])
+    model = gensim.downloader.load("word2vec-ruscorpora-300")
+    oct["Accountant"] = oct["Text"].apply(lambda x: eval_article(w2v_model=model, terms=x,
+                                                                 role_keywords=["бухгалтер", "закон"]))
+    oct["CEO"] = oct["Text"].apply(lambda x: eval_article(w2v_model=model, terms=x,
+                                                                 role_keywords=["директор", "закон"]))
