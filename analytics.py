@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import copy
 import re
 from typing import List
 
+import gensim.models
 import numpy as np
 import spacy
 import pandas as pd
@@ -35,14 +37,24 @@ def clean_up(
 
     doc = NLP(text)
     text = [token.lemma_ for token in doc if token.pos_ in POS_TAGS]
+
     return text
 
 
-"""
-<<<<<<< Updated upstream
-Можно ли будет вместо article:str сделать article:[str]?
-Да, в итоге всё равно нужно будет принять в fit_transform [str].
-"""
+def form_ngrams(
+        articles: pd.Series
+):
+    bigram = gensim.models.Phrases(articles)
+    trigram = gensim.models.Phrases(bigram[articles], connector_words=gensim.models.phrases.ENGLISH_CONNECTOR_WORDS)
+
+    bigram_mod = gensim.models.phrases.Phraser(bigram)
+    trigram_mod = gensim.models.phrases.Phraser(trigram)
+
+    for i, entry in articles.copy().items():
+        articles[i] = bigram_mod[entry]
+        articles[i] = trigram_mod[bigram_mod[entry]]
+
+    return articles
 
 
 def tf_idf_nitems(
@@ -136,9 +148,10 @@ if __name__ == "__main__":
     sample2.set_index("Link")
 
     sample1["Text"] = sample1["Text"].apply(clean_up)
+    sample1["Text"] = form_ngrams(sample1["Text"])
     # sample1["Text"] = sample["Text"].apply(tf_idf_nitems)
 
-    sample2["Text"] = sample2["Text"].apply(clean_up)
+    # sample2["Text"] = sample2["Text"].apply(clean_up)
     # sample2["Text"] = sample2["Text"].apply(tf_idf_nitems)
 
-    t, fd = compare_series(sample1["Text"], sample2["Text"])
+    # t, fd = compare_series(sample1["Text"], sample2["Text"])
