@@ -12,6 +12,9 @@ from utils import States, scheduler, trends_update
 
 
 async def on_shutdown(dp):
+    """
+    Closes RAM storage on shutdown.
+    """
     await dp.storage.close()
     await dp.storage.wait_closed()
 
@@ -59,8 +62,8 @@ async def process_help_command(message: types.Message):
     """
 
     msg = text(bold('Новостной портал '), '+', bold('3балла'), '!\nПривет! '
-               + 'Этот бот подбирает новости, актуальные для Вашей '
-               + 'профессиональной деятельности дважды в день. Чтобы указать '
+               + 'Этот бот два раза в день подбирает новости, актуальные для '
+               + 'Вашей профессиональной деятельности. Чтобы указать '
                + 'свою профессию, нажмите на следующую команду: /profile.',
                sep='')
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
@@ -75,6 +78,9 @@ async def process_help_command(message: types.Message):
     state = dp.current_state(user=message.from_user.id)
     await state.set_state(States.all()[0])
 
+    # markup = ReplyKeyboardMarkup(one_time_keyboard = True)
+    # markup.add(...)
+
     kb = [[types.KeyboardButton(text='Accountant'),
            types.KeyboardButton(text='CEO')]]
     keyboard = types.ReplyKeyboardMarkup(
@@ -83,7 +89,7 @@ async def process_help_command(message: types.Message):
         input_field_placeholder='Используйте кнопки ниже.'
     )
     await message.answer('Укажите Вашу профессию:', reply_markup=keyboard)
-
+    
 
 @dp.message_handler(state='*', commands=['timeset'])
 async def process_help_command(message: types.Message):

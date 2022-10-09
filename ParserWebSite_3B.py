@@ -65,7 +65,7 @@ def GettingDataArticlesFromWeb(URLLink, LinkForFeed):
         for i in range(0, len(PartText)-15):
             TextArticles += ' ' + PartText[i].text
 
-    # Deleta all \n
+    # Delete all \n
     TextArticles = re.sub(r'\n', ' ', TextArticles).replace('\xa0', ' ')
     HeadArticles = re.sub(r'\n', ' ', HeadArticles).replace('\xa0', ' ')
 

@@ -1,3 +1,4 @@
+import re
 import csv
 import json
 import pandas as pd
@@ -9,6 +10,8 @@ from datetime import datetime, timedelta
 import asyncio
 import aioschedule
 from config import bot
+from aiogram.types import ParseMode
+from aiogram.utils.markdown import text, bold, italic
 from aiogram.utils.helper import Helper, HelperMode, ListItem
 
 from analytics_wrapper import eval_data_4_role, preprocess_df
@@ -16,7 +19,7 @@ from analytics_wrapper import eval_data_4_role, preprocess_df
 
 class States(Helper):
     """
-    TODO
+    States of the bot.
     """
     mode = HelperMode.snake_case
 
@@ -26,7 +29,7 @@ class States(Helper):
 
 async def get_data(url_link: str, feed_link: str):
     """
-    Retrives data from sites 
+    Retrives data from sites.
     """
     txt_arts = ''  # article text
     hd_arts = ''  # article name
@@ -86,12 +89,16 @@ async def get_data(url_link: str, feed_link: str):
         for i in range(0, len(part_txt)-15):
             txt_arts += ' ' + part_txt[i].text
 
+    # Delete all \n
+    txt_arts = re.sub(r'\n', ' ', txt_arts).replace('\xa0', ' ')
+    hd_arts = re.sub(r'\n', ' ', hd_arts).replace('\xa0', ' ')
+    
     return [hd_arts.replace('\n', ''), txt_arts.replace('\n', '')]
 
 
 async def getting_news_to_file(last_time: datetime, user_id=0):
     """
-
+    Gets news from the last_time and sends it to user by user_id.
     """
     # Initialization of the start string in tsv file
     with open('temp.tsv', 'w', newline='', encoding='utf8') as f:
@@ -141,9 +148,20 @@ async def getting_news_to_file(last_time: datetime, user_id=0):
 
     with open('data.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
-
     role = data[str(user_id)]
-    await bot.send_message(user_id, eval_data_4_role(role, df))
+    digests = eval_data_4_role(role, df)
+
+    msg = text(bold('Главные дайджесты с последнего обновления:'), sep='')
+
+    count = 0
+    for digest in digests:
+        count += 1
+        temp = ''
+        for article in digest[1]:
+            temp += article + ' '
+        msg += text('\n\n', count, ': ', [temp], '(', digest[0], ')', sep='')
+
+    await bot.send_message(user_id, msg, parse_mode=ParseMode.MARKDOWN)
 
 
 async def news_update(last_time: str, user_id: int):
@@ -166,7 +184,7 @@ async def trends_update():
 
 async def scheduler(first_time: str, second_time: str, user_id: int):
     """
-
+    Schedules news_update at first_time and second_time daily.
     """
     aioschedule.every().day.at(first_time).do(news_update, user_id=user_id,
                                               last_time=second_time)
