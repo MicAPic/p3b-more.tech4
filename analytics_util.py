@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import copy
 import os
 import re
 from collections import Counter
 from datetime import datetime
-from itertools import chain, product
+from itertools import chain, product, combinations
 from statistics import median
 from typing import List
 
@@ -46,7 +47,36 @@ def lemmatize(article: str) -> List[str]:
     return article
 
 
-def form_ngrams(articles: pd.Series) -> pd.Series:
+def remove_similar(
+        dataframe: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    If the dataframe contains articles that are very similar in meaning, removes the one with the longer digest.
+    Used in eval_data_4_role()
+
+    :param dataframe: Full dataframe received from the bot
+    :return The same dataframe, but now without implicitly similar articles
+    """
+    temp_series = copy.deepcopy(dataframe["Digest"])
+    temp_series = temp_series.map(lambda x: NLP(" ".join(x)))
+
+    digest_pairs = list(combinations(temp_series, r=2))
+    for digest1, digest2 in digest_pairs:
+        if digest1.similarity(digest2) >= 0.87:
+            # keep the article with the shorter digest; nobody has the time to read these days
+            candidate = digest1 if len(digest1) > len(digest2) else digest2
+            # dataframe = dataframe[dataframe["Digest"] != candidate]
+            try:
+                dataframe = dataframe.drop(temp_series.index[temp_series == candidate])
+            except KeyError:
+                continue
+
+    return dataframe
+
+
+def form_ngrams(
+        articles: pd.Series
+) -> pd.Series:
     """
     Substitutes collocations with respective n-grams where it can be applied. Used in eval_data_4_role()
 
@@ -86,6 +116,8 @@ def tf_idf_nitems(article: List[str], n=10) -> List[str]:
 
 # used in digest() below
 lex_rank_summarizer = LexRankSummarizer()
+
+
 #
 
 
@@ -164,15 +196,16 @@ def generate_trend_wordcloud(articles: pd.Series) -> None:
             break
 
     vtb_mask = np.array(Image.open('imgs/vtb_logo.png'))
+    color_function = lambda *args, **kwargs: "hsl(230,100%%, %d%%)" % np.random.randint(20, 60)
 
     wordcloud = WordCloud(background_color='white',
-                          mask=vtb_mask).generate_from_frequencies(
+                          mask=vtb_mask,
+                          color_func=color_function).generate_from_frequencies(
         frequencies=trending_keywords)
     if not os.path.exists('imgs/word_clouds'):
         os.makedirs('imgs/word_clouds')
 
     wordcloud.to_file(f'imgs/word_clouds/{datetime.now():%Y-%m-%d-%H%M%S}.jpg')
-
 
 # if __name__ == '__main__':
 #     find_trends(df['Text'])
