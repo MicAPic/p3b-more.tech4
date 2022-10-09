@@ -34,6 +34,10 @@
 
 > pip install -r requirements.txt
 
+> python -m spacy download ru_core_news_lg
+
+> python -c "import nltk; nltk.download('punkt')"
+
 > python main.py
 
 Бот будет доступен по адресу [@p3b_more_bot](https://t.me/p3b_more_bot) и
@@ -59,4 +63,7 @@
 
 > generate_trend_wordcloud(df['Text'])
 
-После генерации, изображение появится в директории imgs/word_clouds.
+После генерации, изображение появится в директории imgs/word_clouds. Пример
+такого изображения можно увидеть ниже:
+
+![img](https://github.com/MicAPic/p3b-more.tech4/blob/master/imgs/word_clouds/example.jpg)
