@@ -16,21 +16,40 @@ ROLE_KEYWORDS = {
 
 
 def preprocess_df(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """
+    Prepares the dataframe for further usage
+
+    :param dataframe: Dataframe from .tsv file
+    :return: Dataframe with date, link, title, the n most important words and digest columns for each article
+    """
+
+    # remove missing values and duplicates
     dataframe.dropna(inplace=True)
     dataframe.drop_duplicates(inplace=True)
+    # set "Date" as the index and sort
     dataframe.set_index('Date', inplace=True)
     dataframe.sort_index(inplace=True)
 
-    dataframe["Digest"] = dataframe["Text"].map(digest)
-    dataframe["Text"] = dataframe["Text"].map(lemmatize)
-    dataframe["Text"] = form_ngrams(dataframe["Text"])
-    dataframe["Text"] = dataframe["Text"].map(tf_idf_nitems)
+    # create digest for an article
+    dataframe['Digest'] = dataframe['Text'].map(digest)
+    # find n most important words of an article
+    dataframe['Text'] = dataframe['Text'].map(lemmatize)
+    dataframe['Text'] = form_ngrams(dataframe['Text'])
+    dataframe['Text'] = dataframe['Text'].map(tf_idf_nitems)
     dataframe = remove_similar(dataframe)
 
     return dataframe
 
 
 def eval_data_4_role(role: str, dataframe: pd.DataFrame, n=3) -> List[List]:
+    """
+    Picks n most relevant articles for a role by its keywords
+
+    :param role: String containing the name of the role
+    :param dataframe: Dataframe with articles to evaluate
+    :param n: No. of chosen articles
+    :return: n most relevant articles for a role
+    """
     assert ROLE_KEYWORDS[role]
     dataframe[role] = dataframe['Text'].map(
         lambda x: eval_article(terms=x, role_keywords=ROLE_KEYWORDS['role']))
