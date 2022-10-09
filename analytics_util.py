@@ -8,7 +8,6 @@ from itertools import chain, product, combinations
 from statistics import median
 from typing import List
 
-import gensim.downloader
 import gensim.models
 import numpy as np
 import pandas as pd
@@ -156,11 +155,16 @@ def eval_article(terms: List[str], role_keywords: List[str]) -> float:
 
 def generate_trend_wordcloud(articles: pd.Series) -> None:
     """
-    Splits the dataframe (should be already lemmatized, etc.) in half, tries to find trending keywords,
+    Splits the dataframe (should be already lemmatized, etc.) in half, 
+    tries to find trending keywords,
     generates a WordCloud image at imgs/word_clouds/
 
     :param articles: Series of tokenized articles from a dataframe
     """
+
+    if len(articles) < 20:
+        raise ValueError(
+            'Given Series is too short to meaningfully find trends')
 
     # divide Series in two
     half_point = int(len(articles) / 2)
@@ -187,12 +191,12 @@ def generate_trend_wordcloud(articles: pd.Series) -> None:
             break
 
     vtb_mask = np.array(Image.open('imgs/vtb_logo.png'))
-    color_function = lambda *args, **kwargs: "hsl(230,100%%, %d%%)" % np.random.randint(
-        20, 60)
+    color_function = lambda *args, **kwargs: "hsl(230,100%%, %d%%)" \
+        % np.random.randint(20, 60)
 
-    wordcloud = WordCloud(background_color='white',
-                          mask=vtb_mask,
-                          color_func=color_function).generate_from_frequencies(frequencies=trending_keywords)
+    wordcloud = WordCloud(background_color='white', mask=vtb_mask,
+                          color_func=color_function).generate_from_frequencies(
+        frequencies=trending_keywords)
     if not os.path.exists('imgs/word_clouds'):
         os.makedirs('imgs/word_clouds')
 
