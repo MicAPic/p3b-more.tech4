@@ -52,8 +52,8 @@ def eval_data_4_role(role: str, dataframe: pd.DataFrame, n=3) -> List[List]:
     """
     assert ROLE_KEYWORDS[role]
     dataframe[role] = dataframe['Text'].map(
-        lambda x: eval_article(terms=x, role_keywords=ROLE_KEYWORDS['role']))
-    dataframe = dataframe.sort_values(role, axis=1, ascending=False).head(n=n)
+        lambda x: eval_article(terms=x, role_keywords=ROLE_KEYWORDS[role]))
+    dataframe = dataframe.sort_values(role, ascending=False).head(n=n)
 
     return dataframe.drop(['Title', 'Text', role], axis=1).values.tolist()
 
@@ -61,5 +61,5 @@ def eval_data_4_role(role: str, dataframe: pd.DataFrame, n=3) -> List[List]:
 if __name__ == '__main__':
     df = pd.read_csv('temp.tsv', sep='\t')
     df = preprocess_df(df)
-    # eval_data_4_role('CEO', df)
-    pass
+    res = eval_data_4_role('CEO', df)
+    # pass
