@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 import os
+from platform import python_branch
 import re
 from collections import Counter
 from datetime import datetime
@@ -28,7 +29,8 @@ NLP = spacy.load('ru_core_news_lg')
 
 def lemmatize(article: str) -> List[str]:
     """
-    Removes links, e-mails and lemmatize the article. Used in eval_data_4_role()
+    Removes links, e-mails and lemmatize the article.
+    Used in eval_data_4_role()
 
     :param article: String containing the full article
     :return: List of tokenized articles
@@ -47,11 +49,10 @@ def lemmatize(article: str) -> List[str]:
     return article
 
 
-def remove_similar(
-        dataframe: pd.DataFrame
-) -> pd.DataFrame:
+def remove_similar(dataframe: pd.DataFrame) -> pd.DataFrame:
     """
-    If the dataframe contains articles that are very similar in meaning, removes the one with the longer digest.
+    If the dataframe contains articles that are very similar in meaning,
+    removes the one with the longer digest.
     Used in eval_data_4_role()
 
     :param dataframe: Full dataframe received from the bot
@@ -63,22 +64,23 @@ def remove_similar(
     digest_pairs = list(combinations(temp_series, r=2))
     for digest1, digest2 in digest_pairs:
         if digest1.similarity(digest2) >= 0.87:
-            # keep the article with the shorter digest; nobody has the time to read these days
+            # keep the article with the shorter digest; nobody has
+            # the time to read these days
             candidate = digest1 if len(digest1) > len(digest2) else digest2
             # dataframe = dataframe[dataframe["Digest"] != candidate]
             try:
-                dataframe = dataframe.drop(temp_series.index[temp_series == candidate])
+                dataframe = dataframe.drop(
+                    temp_series.index[temp_series == candidate])
             except KeyError:
                 continue
 
     return dataframe
 
 
-def form_ngrams(
-        articles: pd.Series
-) -> pd.Series:
+def form_ngrams(articles: pd.Series) -> pd.Series:
     """
-    Substitutes collocations with respective n-grams where it can be applied. Used in eval_data_4_role()
+    Substitutes collocations with respective n-grams where it can be applied.
+    Used in eval_data_4_role()
 
     :param articles: Series containing the necessary tokenized articles
     :return: Series with n-grams added
@@ -118,9 +120,6 @@ def tf_idf_nitems(article: List[str], n=10) -> List[str]:
 lex_rank_summarizer = LexRankSummarizer()
 
 
-#
-
-
 def digest(article: str, n=3) -> List[str]:
     """
     Forms a digest based on the article given. Used in eval_data_4_role()
@@ -142,7 +141,8 @@ def digest(article: str, n=3) -> List[str]:
 
 def eval_article(terms: List[str], role_keywords: List[str]) -> float:
     """
-    Evaluate the given article based on the similarity with the keywords for a role. Used in eval_data_4_role()
+    Evaluate the given article based on the similarity with the keywords
+    for a role. Used in eval_data_4_role()
 
     :param terms: Most frequent terms of the article for analysis (use TF-IDF)
     :param role_keywords: List of keywords
@@ -196,7 +196,8 @@ def generate_trend_wordcloud(articles: pd.Series) -> None:
             break
 
     vtb_mask = np.array(Image.open('imgs/vtb_logo.png'))
-    color_function = lambda *args, **kwargs: "hsl(230,100%%, %d%%)" % np.random.randint(20, 60)
+    color_function = lambda *args, **kwargs: "hsl(230,100%%, %d%%)" % np.random.randint(
+        20, 60)
 
     wordcloud = WordCloud(background_color='white',
                           mask=vtb_mask,
