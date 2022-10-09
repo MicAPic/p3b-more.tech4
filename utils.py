@@ -64,7 +64,7 @@ async def get_data(url_link: str, feed_link: str):
         hd_arts = website.find_all('span', class_='topic-body__title')
         hd_arts = hd_arts[0].text
 
-        part_txt = website.find_all('div', class_='topic-body__content')
+        part_txt = website.find_all('p', class_='topic-body__content-text')
         for element in part_txt:
             txt_arts += ' ' + element.text
 
