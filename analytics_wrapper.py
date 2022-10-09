@@ -3,7 +3,7 @@ from typing import List
 
 import pandas as pd
 
-from analytics_util import lemmatize, form_ngrams, \
+from analytics_util import lemmatize, remove_similar, form_ngrams, \
     tf_idf_nitems, digest, eval_article
 
 # keywords that form a description of the role's job
@@ -21,10 +21,11 @@ def preprocess_df(dataframe: pd.DataFrame) -> pd.DataFrame:
     dataframe.set_index('Date', inplace=True)
     dataframe.sort_index(inplace=True)
 
-    dataframe['Digest'] = dataframe['Text'].map(digest)
-    dataframe['Text'] = dataframe['Text'].map(lemmatize)
-    dataframe['Text'] = form_ngrams(dataframe['Text'])
-    dataframe['Text'] = dataframe['Text'].map(tf_idf_nitems)
+    dataframe["Digest"] = dataframe["Text"].map(digest)
+    dataframe["Text"] = dataframe["Text"].map(lemmatize)
+    dataframe["Text"] = form_ngrams(dataframe["Text"])
+    dataframe["Text"] = dataframe["Text"].map(tf_idf_nitems)
+    dataframe = remove_similar(dataframe)
 
     return dataframe
 
@@ -39,7 +40,7 @@ def eval_data_4_role(role: str, dataframe: pd.DataFrame, n=3) -> List[List]:
 
 
 if __name__ == '__main__':
-    # df = pd.read_csv('temp.tsv', sep='\t')
-    # df = preprocess_df(df)
+    df = pd.read_csv('temp.tsv', sep='\t')
+    df = preprocess_df(df)
     # eval_data_4_role('CEO', df)
     pass

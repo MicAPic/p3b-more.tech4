@@ -19,7 +19,7 @@ async def on_shutdown(dp):
 @dp.message_handler(state=States.PROFILE_STATE)
 async def first_test_state_case_met(message: types.Message):
     """
-    Records the users's occupation on the data.
+    Records the users' occupation on the data.
     """
     with open('data.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
