@@ -24,6 +24,7 @@ from PIL import Image
 
 POS_TAGS = ['NOUN', 'ADJ', 'VERB', 'ADV', 'PROPN']
 NLP = spacy.load('ru_core_news_lg')
+LRS = LexRankSummarizer()
 
 
 def lemmatize(article: str) -> List[str]:
@@ -114,13 +115,6 @@ def tf_idf_nitems(article: List[str], n=10) -> List[str]:
     return results.head(n).index.to_list()
 
 
-# used in digest() below
-lex_rank_summarizer = LexRankSummarizer()
-
-
-#
-
-
 def digest(article: str, n=3) -> List[str]:
     """
     Forms a digest based on the article given. Used in eval_data_4_role()
@@ -132,7 +126,7 @@ def digest(article: str, n=3) -> List[str]:
     # TODO: заменить токенизатором spaCy, если останется время:
     my_parser = PlaintextParser.from_string(article, Tokenizer('russian'))
     #
-    lexrank_summary = lex_rank_summarizer(
+    lexrank_summary = LRS(
         my_parser.document, sentences_count=n)
     digest_sentences = []
     for sentence in lexrank_summary:
@@ -168,7 +162,7 @@ def generate_trend_wordcloud(articles: pd.Series) -> None:
     """
 
     # divide Series in two
-    half_point = int(len(articles / 2))
+    half_point = int(len(articles) / 2)
     old_articles = articles.head(half_point)
     new_articles = articles.tail(half_point - half_point % 2)
 
@@ -183,10 +177,6 @@ def generate_trend_wordcloud(articles: pd.Series) -> None:
     # use k-means to divide the dictionary of keyword popularity difference into 3 clusters
     y_pred = KMeans(n_clusters=3).fit_predict(
         np.asarray(list(difference.values())).reshape(-1, 1))
-    plt.scatter(np.zeros(len(difference)), difference.values(),
-                c=y_pred, marker=".", linewidths=0.1)
-    plt.xticks([])
-    plt.show()
 
     # map the variable to corresponding cluster
     trending_keywords = dict()
@@ -200,12 +190,11 @@ def generate_trend_wordcloud(articles: pd.Series) -> None:
 
     wordcloud = WordCloud(background_color='white',
                           mask=vtb_mask,
-                          color_func=color_function).generate_from_frequencies(
-        frequencies=trending_keywords)
+                          color_func=color_function).generate_from_frequencies(frequencies=trending_keywords)
     if not os.path.exists('imgs/word_clouds'):
         os.makedirs('imgs/word_clouds')
 
     wordcloud.to_file(f'imgs/word_clouds/{datetime.now():%Y-%m-%d-%H%M%S}.jpg')
 
 # if __name__ == '__main__':
-#     find_trends(df['Text'])
+#     generate_trend_wordcloud(df['Text'])

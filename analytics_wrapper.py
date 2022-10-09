@@ -30,7 +30,6 @@ def preprocess_df(dataframe: pd.DataFrame) -> pd.DataFrame:
     # set "Date" as index and sort
     dataframe.set_index('Date', inplace=True)
     dataframe.sort_index(inplace=True)
-
     # create digest for an article
     dataframe['Digest'] = dataframe['Text'].map(digest)
     # find the n most important words of an article
@@ -59,7 +58,6 @@ def eval_data_4_role(role: str, dataframe: pd.DataFrame, n=3) -> List[List]:
 
 
 if __name__ == '__main__':
-    # df = pd.read_csv('temp.tsv', sep='\t')
-    # df = preprocess_df(df)
-    # eval_data_4_role('CEO', df)
-    pass
+    df = pd.read_csv('temp.tsv', sep='\t')
+    df = preprocess_df(df)
+    print(eval_data_4_role('CEO', df))
