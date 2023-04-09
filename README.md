@@ -28,7 +28,7 @@
 Сделать всё это можно, предварительно перейдя в желаемую директорию установки,
 с помощью следующих команд:
 
-> git clone git:https://github.com/MicAPic/p3b-more.tech4.git
+> git clone git:https://github.com/plus3balla/more.tech4.git
 
 > cd p3b-more.tech4
 
@@ -66,4 +66,4 @@
 После генерации, изображение появится в директории imgs/word_clouds. Пример
 такого изображения можно увидеть ниже:
 
-![img](https://github.com/MicAPic/p3b-more.tech4/blob/master/imgs/word_clouds/example.jpg)
+![img](https://github.com/plus3balla/more.tech4/blob/hackathon/imgs/word_clouds/example.jpg)
