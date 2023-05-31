@@ -1,34 +1,36 @@
-# +3балла
+# +3balla (vol. 2)
 
-## Описание
+## Disclaimer
 
-Наш сервис предлагает клиенту релевантные для его профессии новости.
-Также он умеет отслеживать текущие тренды и выдавать данные для инсайтов,
-связанных с ними.
+This branch is a fork of the main one, although it deserves its own repository.
+Here, we demonstrate the development of our project within the scope of the
+"Theoretical Informatics" academic discipline.
 
-Взаимодействие сервиса с клиентом выстроено через телеграм-бот. По командам из
-меню клиент может указать свою профессию и время, в которое желает получать
-подборки новостей. По отдельному запросу можно получить облако трендов
-за последний месяц.
+---
 
-В качестве источников новостей мы используем Ведомости, КонсультантПлюс,
-Ленту.ру, РБК, Аргументы и Факты. Из полученных текстов дважды в день мы
-выбираем три наиболее подходящих и присылаем клиенту их дайджест. 
+## Description
 
-По срезу данных за месяц сервис выявляет тренды -- это темы, которые
-в последнее время обсуждают наиболее интенсивно. Мы предлагаем клиенту
-рассмотреть облако слов, составленное из трендов, чтобы проанализировать их
-как по отдельности, так и в совокупности. На основании этого анализа он может
-понять, что в настоящее время волнует людей, и предсказать их потребности.
+Our service allows analyzing a continuous stream of news from RSS various
+sources. We can track current trends and create digests based on them.
 
-## Запуск
+Interaction with the user is done through a Telegram bot.
 
-Для старта бота необходимо установить зависимости из requirements.txt и
-запустить файл main.py средствами командной строки или любого IDE.
-Сделать всё это можно, предварительно перейдя в желаемую директорию установки,
-с помощью следующих команд:
+Using the collected data, our service identifies trends, which are the most
+discussed topics recently. These topics are then compiled into a unified digest
+and forwarded to a preselected channel.
 
-> git clone git:https://github.com/plus3balla/more.tech4.git
+## Launch
+
+To run our service, uncomment and fill in the config.py file Bot token
+parameter from @BotFather:
+
+- BOT_TOKEN = <Bot token, str>
+
+To launch our bot, install the dependencies from requirements.txt and run the
+main.py file from the command line or any IDE. This can be done by first
+navigating to the desired installation directory using the following commands:
+
+> git clone git:https://github.com/plus3balla/more.tech4/tree/news-trends
 
 > cd p3b-more.tech4
 
@@ -36,34 +38,7 @@
 
 > python -m spacy download ru_core_news_lg
 
-> python -c "import nltk; nltk.download('punkt')"
-
 > python main.py
 
-Бот будет доступен по адресу [@p3b_more_bot](https://t.me/p3b_more_bot) и
-полностью готов к работе. Интерактивные подсказки помогут пройти весь цикл
-взаимодействия с сервисом.
-
-## Тренды
-
-Для получени облака трендов нужно выполнить следующие команды, предварительно
-находясь в директории проекта:
-
-> python
-
-> import pandas as pd
-
-> from analytics_util import generate_trend_wordcloud
-
-> from analytics_wrapper import preprocess_df
-
-> df = pd.read_csv('sample_dataset.tsv', sep='\t')
-
-> df = preprocess_df(df)
-
-> generate_trend_wordcloud(df['Text'])
-
-После генерации, изображение появится в директории imgs/word_clouds. Пример
-такого изображения можно увидеть ниже:
-
-![img](https://github.com/plus3balla/more.tech4/blob/hackathon/imgs/word_clouds/example.jpg)
+The demonstration bot is available at
+[@plus3balla_bot](https://t.me/plus3balla_bot).

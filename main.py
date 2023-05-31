@@ -1,152 +1,92 @@
+'''Human-machine communication interface'''
 # -*- coding: utf-8 -*-
 
-import json
-import asyncio
-import aioschedule
-from aiogram import types, executor
-from aiogram.utils.markdown import text, bold, italic
+from aiogram import executor, types
+from aiogram.dispatcher import Dispatcher
 from aiogram.types import ParseMode
+from aiogram.utils.helper import Helper, HelperMode, ListItem
+from aiogram.utils.markdown import bold, text
 
-from config import bot, dp
-from utils import States, scheduler, trends_update
-
-
-async def on_shutdown(dp):
-    """
-    Closes RAM storage on shutdown.
-    """
-    await dp.storage.close()
-    await dp.storage.wait_closed()
+from config import dispatcher
+from utils import scheduler
 
 
-@dp.message_handler(state=States.PROFILE_STATE)
-async def first_test_state_case_met(message: types.Message):
-    """
-    Records the users' occupation on the data.
-    """
-    with open('data.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
+class States(Helper):
+    '''States of the bot'''
 
-    data[message.from_user.id] = message.text
-
-    with open('data.json', 'w', encoding='utf-8') as f:
-        json.dump(data, f)
-
-    msg = 'Записано! Для установки времени нажмите команду /timeset.'
-    await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
-
-    state = dp.current_state(user=message.from_user.id)
-    await state.reset_state()
+    mode = HelperMode.snake_case
+    TIMESET_STATE = ListItem()
 
 
-@dp.message_handler(state=States.TIMESET_STATE)
-async def first_test_state_case_met(message: types.Message):
-    """
-    Sets a scheduler with daily notifications at assigned times.
-    """
+@dispatcher.message_handler(state=States.TIMESET_STATE)
+async def first_test_state_case_met(message: types.Message) -> None:
+    '''Set up a scheduler with daily notifications at scheduled times'''
+
     first_time, second_time = message.text.split()
-    asyncio.create_task(scheduler(first_time, second_time,
-                                  message.from_user.id))
+    await scheduler(first_time, second_time, message.from_user.id)
 
-    msg = 'Принято! Ожидайте новости в указанное время.'
+    msg = 'Got it! Expect news at the specified time.'
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
 
-    state = dp.current_state(user=message.from_user.id)
+    state = dispatcher.current_state(user=message.from_user.id)
     await state.reset_state()
 
 
-@dp.message_handler(commands=['start'])
-async def process_help_command(message: types.Message):
-    """
-    Handles /start command. Displays the welcome message and invite to start.
-    """
+@dispatcher.message_handler(commands=['start'])
+async def process_help_command(message: types.Message) -> None:
+    '''Handle /start command. Display a welcome message and invite to start'''
 
-    msg = text(bold('Новостной портал '), '+', bold('3балла'), '!\nПривет! '
-               + 'Этот бот два раза в день подбирает новости, актуальные для '
-               + 'Вашей профессиональной деятельности. Чтобы указать '
-               + 'свою профессию, нажмите на следующую команду: /profile.',
+    msg = text(bold('News portal '), '+', bold('3balla'), '!\nHello! ',
+               'This bot aggregates news twice a day and sends out a digest.',
                sep='')
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
 
 
-@dp.message_handler(state='*', commands=['profile'])
-async def process_help_command(message: types.Message):
-    """
-    Handles /profile command. Changes the state to PROFILE_STATE.
-    """
+@dispatcher.message_handler(state='*', commands=['timeset'])
+async def process_help_command(message: types.Message) -> None:
+    '''Handle /timeset command. Set a time of news output'''
 
-    state = dp.current_state(user=message.from_user.id)
+    state = dispatcher.current_state(user=message.from_user.id)
     await state.set_state(States.all()[0])
 
-    # markup = ReplyKeyboardMarkup(one_time_keyboard = True)
-    # markup.add(...)
-
-    kb = [[types.KeyboardButton(text='Accountant'),
-           types.KeyboardButton(text='CEO')]]
-    keyboard = types.ReplyKeyboardMarkup(
-        keyboard=kb,
-        resize_keyboard=True,
-        input_field_placeholder='Используйте кнопки ниже.'
-    )
-    await message.answer('Укажите Вашу профессию:', reply_markup=keyboard)
-    
-
-@dp.message_handler(state='*', commands=['timeset'])
-async def process_help_command(message: types.Message):
-    """
-    Handles /timeset command. Set the time of news output.
-    """
-
-    state = dp.current_state(user=message.from_user.id)
-    await state.set_state(States.all()[1])
-
-    msg = text('Укажите время, в которое Вы хотите получать новости утром и ',
-               'вечером в формате ', bold('часы:минуты часы:минуты'),
-               '.\nНапример, это может выглядеть так: 8:07 17:21.', sep='')
+    msg = text('Specify the time at which you would like to receive news ',
+               'in the morning and evening in the format ',
+               bold('hours:minutes hours:minutes'),
+               '.\nFor example, it can look like this: 8:07 17:21.', sep='')
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
 
 
-@dp.message_handler(state='*', commands=['stop'])
-async def process_help_command(message: types.Message):
-    """
-    Handles /stop command. Terminate the digest.
-    """
+@dispatcher.message_handler(state='*', commands=['stop'])
+async def process_help_command(message: types.Message) -> None:
+    '''Handle /stop command. Terminate the digest'''
 
-    state = dp.current_state(user=message.from_user.id)
+    state = dispatcher.current_state(user=message.from_user.id)
     await state.reset_state()
-    aioschedule.clear()
 
-    msg = text('Дайджест остановлен!', sep='')
+    msg = text('Digest stopped!', sep='')
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
 
 
-@dp.message_handler(commands=['trends'])
-async def process_help_command(message: types.Message):
-    """
-    Handles /trends command. Displays a list of trends over the last month.
-    """
-    pass
+@dispatcher.message_handler(commands=['help'])
+async def process_help_command(message: types.Message) -> None:
+    '''Handle /help command. Display a text menu with available options'''
 
-
-@dp.message_handler(commands=['help'])
-async def process_help_command(message: types.Message):
-    """
-    Handles /help command. Displays a text menu with available options.
-    """
-
-    msg = text(bold('Готов ответить на эти команды:'),
-               '/profile - указать профессию',
-               '/timeset - указать время отправки новостей',
-               '/stop - остановить отправку новостей',
-               '/trends - вывод трендов за месяц',
-               '/help - увидеть этот список вновь',
-               sep='\n')
+    msg = text(bold('Ready to respond to these commands:'),
+               '/timeset - set the news delivery time',
+               '/stop - stop sending news',
+               '/help - see this list again', sep='\n')
     await message.answer(msg, parse_mode=ParseMode.MARKDOWN)
+
+
+async def on_shutdown(disp: Dispatcher) -> None:
+    '''Close RAM storage on shutdown'''
+    await disp.storage.close()
+    await disp.storage.wait_closed()
 
 
 if __name__ == '__main__':
     executor.start_polling(
-        dispatcher=dp,
+        dispatcher=dispatcher,
         skip_updates=True,
         on_shutdown=on_shutdown
     )

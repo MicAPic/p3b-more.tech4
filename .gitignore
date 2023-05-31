@@ -225,5 +225,7 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 .DS_Store
 
-# Stuff
-temp.tsv
+# Other
+*.tsv
+.vscode
+*.ipynb
